@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>BowlWise · Meal Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: #f2f6fa;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #1e293b;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── top bar ── */
+    .app-bar {
+      background: #ffffff;
+      padding: 18px 20px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(0,0,0,0.04);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .app-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .app-bar .brand {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      color: #0f1825;
+    }
+
+    .app-bar .brand span {
+      color: #c8933a;
+    }
+
+    .app-bar .dog-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 40px;
+      background: #e9edf2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(200,147,58,0.25);
+      flex-shrink: 0;
+    }
+
+    .app-bar .dog-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .menu-btn {
+      background: transparent;
+      border: none;
+      font-size: 26px;
+      line-height: 1;
+      padding: 4px 6px;
+      cursor: pointer;
+      color: #1e293b;
+      transition: 0.2s;
+    }
+    .menu-btn:active { opacity: 0.5; }
+
+    /* ── drawer (slide from right) ── */
+    .drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.3);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .drawer-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .drawer {
+      position: fixed;
+      top: 0;
+      right: -300px;
+      width: 290px;
+      max-width: 80vw;
+      height: 100%;
+      background: #ffffff;
+      z-index: 110;
+      padding: 30px 24px 30px;
+      box-shadow: -6px 0 24px rgba(0,0,0,0.08);
+      transition: right 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .drawer.open {
+      right: 0;
+    }
+
+    .drawer-header {
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      margin-bottom: 12px;
+    }
+    .drawer-header .brand-drawer {
+      font-size: 20px;
+      font-weight: 800;
+      color: #0f1825;
+    }
+    .drawer-header .brand-drawer span { color: #c8933a; }
+
+    .drawer-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 8px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 500;
+      color: #1e293b;
+      transition: background 0.15s;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      width: 100%;
+      text-align: left;
+    }
+    .drawer-item:active { background: #f1f5f9; }
+    .drawer-item .icon { font-size: 20px; width: 28px; text-align: center; }
+    .drawer-item.active { background: #f8f2e7; color: #c8933a; font-weight: 600; }
+
+    .drawer-footer {
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid rgba(0,0,0,0.05);
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    /* ── main content ── */
+    .main {
+      flex: 1;
+      padding: 16px 18px 80px;
+      max-width: 640px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ── cards / summary ── */
+    .summary-card {
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 22px 20px 18px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+      border: 1px solid rgba(0,0,0,0.03);
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+    }
+
+    .summary-left .day-label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #64748b;
+      letter-spacing: 0.2px;
+    }
+    .summary-left .main-kcal {
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #0f1825;
+      line-height: 1.1;
+      margin-top: 2px;
+    }
+    .summary-left .main-kcal small {
+      font-size: 16px;
+      font-weight: 500;
+      color: #94a3b8;
+      margin-left: 6px;
+    }
+    .summary-left .sub-text {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    .macro-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(0,0,0,0.04);
+    }
+    .macro-pill {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      font-size: 13px;
+    }
+    .macro-pill .label {
+      color: #64748b;
+      font-weight: 500;
+    }
+    .macro-pill .value {
+      font-weight: 700;
+      color: #0f1825;
+    }
+    .macro-pill .target {
+      color: #94a3b8;
+      font-weight: 400;
+      font-size: 12px;
+    }
+
+    .breed-weight-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px 20px;
+      background: #f8fafc;
+      border-radius: 18px;
+      padding: 12px 16px;
+      margin-top: 12px;
+    }
+    .breed-weight-row .item {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      font-size: 14px;
+    }
+    .breed-weight-row .item .label {
+      color: #64748b;
+      font-weight: 500;
+    }
+    .breed-weight-row .item .val {
+      font-weight: 700;
+      color: #0f1825;
+    }
+
+    /* meal list */
+    .meal-section-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 24px 0 12px;
+      color: #0f1825;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .meal-section-title .view-all {
+      font-size: 13px;
+      font-weight: 500;
+      color: #c8933a;
+      cursor: pointer;
+    }
+
+    .meal-item {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      border: 1px solid rgba(0,0,0,0.03);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.01);
+      transition: 0.15s;
+    }
+    .meal-item:active { background: #f8fafc; }
+    .meal-item .left .meal-label {
+      font-weight: 600;
+      font-size: 15px;
+    }
+    .meal-item .left .meal-desc {
+      font-size: 13px;
+      color: #475569;
+      margin-top: 2px;
+    }
+    .meal-item .left .meal-kcal {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1e293b;
+      margin-top: 2px;
+    }
+    .meal-item .right {
+      text-align: right;
+    }
+    .meal-item .right .badge-fed {
+      background: #dcfce7;
+      color: #15803d;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 40px;
+    }
+    .meal-item .right .badge-pending {
+      background: #f1f5f9;
+      color: #64748b;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 40px;
+    }
+
+    /* weight trend stub */
+    .weight-trend {
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 16px 18px;
+      margin-top: 24px;
+      border: 1px solid rgba(0,0,0,0.03);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .weight-trend .left .wt-label {
+      font-weight: 600;
+      font-size: 15px;
+    }
+    .weight-trend .left .wt-sub {
+      font-size: 13px;
+      color: #64748b;
+    }
+    .weight-trend .action {
+      color: #c8933a;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    /* page visibility */
+    .page {
+      display: none;
+      animation: fadeIn 0.25s ease;
+    }
+    .page.active { display: block; }
+
+    @keyframes fadeIn {
+      0% { opacity: 0.4; transform: translateY(6px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* placeholder for other tabs */
+    .placeholder-tab {
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 40px 20px;
+      text-align: center;
+      color: #64748b;
+      border: 1px solid rgba(0,0,0,0.03);
+      font-size: 15px;
+    }
+
+    /* responsive */
+    @media (min-width: 600px) {
+      .main { padding: 24px 28px 80px; }
+    }
+
+    /* utility */
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <header class="app-bar">
+    <div class="app-bar-left">
+      <div class="dog-avatar" id="avatarBox">
+        <span id="avatarPlaceholder">🐾</span>
+        <img id="avatarImg" style="display:none" alt="dog">
+      </div>
+      <div class="brand">Bowl<span>Wise</span></div>
+    </div>
+    <button class="menu-btn" id="menuToggle" aria-label="Menu">☰</button>
+  </header>
+
+  <!-- DRAWER -->
+  <div class="drawer-overlay" id="drawerOverlay"></div>
+  <nav class="drawer" id="drawer">
+    <div class="drawer-header">
+      <div class="brand-drawer">Bowl<span>Wise</span></div>
+      <div style="font-size:13px;color:#64748b;margin-top:4px;">Real food nutrition</div>
+    </div>
+    <button class="drawer-item active" data-tab="dashboard"><span class="icon">📊</span> Dashboard</button>
+    <button class="drawer-item" data-tab="meal-tracker"><span class="icon">🍽️</span> Meal Tracker</button>
+    <button class="drawer-item" data-tab="nutrition"><span class="icon">🧬</span> Nutrition Advisor</button>
+    <button class="drawer-item" data-tab="weight"><span class="icon">⚖️</span> Weight Tracker</button>
+    <button class="drawer-item" data-tab="profile"><span class="icon">🐶</span> Dog Profile</button>
+    <div class="drawer-footer">
+      <button class="drawer-item" style="color:#94a3b8;font-weight:400;padding-left:8px;"><span class="icon">→</span> Sign out</button>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main" id="mainContent">
+
+    <!-- DASHBOARD (default) -->
+    <section class="page active" id="page-dashboard">
+      <div class="summary-card">
+        <div class="summary-row">
+          <div class="summary-left">
+            <div class="day-label">Wednesday, July 8 · <span id="dogNameDisplay">Mya</span>'s Day</div>
+            <div class="main-kcal">0 <small>of 2113 kcal</small></div>
+            <div class="sub-text">Today's Calories</div>
+          </div>
+        </div>
+        <div class="macro-pills">
+          <span class="macro-pill"><span class="label">Protein</span> <span class="value" id="dashProtein">0</span><span class="target">/132</span></span>
+          <span class="macro-pill"><span class="label">Fat</span> <span class="value" id="dashFat">0</span><span class="target">/82</span></span>
+          <span class="macro-pill"><span class="label">Carbs</span> <span class="value" id="dashCarbs">0</span><span class="target">/211</span></span>
+        </div>
+        <div class="breed-weight-row">
+          <span class="item"><span class="label">Breed</span> <span class="val" id="dashBreed">Pitbull</span></span>
+          <span class="item"><span class="label">Current Weight</span> <span class="val" id="dashWeight">60 kg</span></span>
+          <span class="item"><span class="label">Target Weight</span> <span class="val">60 kg</span></span>
+          <span class="item"><span class="label">Meals Today</span> <span class="val" id="dashMeals">1</span></span>
+        </div>
+      </div>
+
+      <div class="meal-section-title">
+        <span>Today's Meals</span>
+        <span class="view-all" id="viewAllMeals">View all →</span>
+      </div>
+      <div id="todayMealsList">
+        <div class="meal-item">
+          <div class="left">
+            <div class="meal-label">Dinner</div>
+            <div class="meal-desc">8 oz chicken</div>
+            <div class="meal-kcal">0 kcal</div>
+          </div>
+          <div class="right">
+            <span class="badge-pending">pending</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="weight-trend">
+        <div class="left">
+          <div class="wt-label">📈 Weight Trend</div>
+          <div class="wt-sub">Last 7 days · stable</div>
+        </div>
+        <span class="action">Log weight</span>
+      </div>
+    </section>
+
+    <!-- other tabs (placeholder) -->
+    <section class="page" id="page-meal-tracker">
+      <div class="placeholder-tab">🍽️ Meal Tracker<br><span style="font-size:13px;color:#94a3b8;">Detailed meal logging & swaps</span></div>
+    </section>
+    <section class="page" id="page-nutrition">
+      <div class="placeholder-tab">🧬 Nutrition Advisor<br><span style="font-size:13px;color:#94a3b8;">AAFCO targets & nutrient breakdown</span></div>
+    </section>
+    <section class="page" id="page-weight">
+      <div class="placeholder-tab">⚖️ Weight Tracker<br><span style="font-size:13px;color:#94a3b8;">Log and visualize weight changes</span></div>
+    </section>
+    <section class="page" id="page-profile">
+      <div class="placeholder-tab">🐶 Dog Profile<br><span style="font-size:13px;color:#94a3b8;">Name, breed, photo, settings</span></div>
+    </section>
+  </main>
+
+  <script>
+    (function() {
+      // ── DOM refs ──
+      const overlay = document.getElementById('drawerOverlay');
+      const drawer = document.getElementById('drawer');
+      const menuBtn = document.getElementById('menuToggle');
+      const drawerItems = document.querySelectorAll('.drawer-item[data-tab]');
+      const pages = {
+        dashboard: document.getElementById('page-dashboard'),
+        'meal-tracker': document.getElementById('page-meal-tracker'),
+        nutrition: document.getElementById('page-nutrition'),
+        weight: document.getElementById('page-weight'),
+        profile: document.getElementById('page-profile'),
+      };
+
+      // ── drawer toggle ──
+      function openDrawer() {
+        drawer.classList.add('open');
+        overlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeDrawer() {
+        drawer.classList.remove('open');
+        overlay.classList.remove('open');
+        document.body.style.overflow = '';
+      }
+      menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (drawer.classList.contains('open')) closeDrawer();
+        else openDrawer();
+      });
+      overlay.addEventListener('click', closeDrawer);
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+
+      // ── tab switching ──
+      function switchTab(tabId) {
+        // hide all pages
+        Object.keys(pages).forEach(key => {
+          pages[key].classList.remove('active');
+        });
+        // show selected
+        if (pages[tabId]) pages[tabId].classList.add('active');
+
+        // update drawer active state
+        drawerItems.forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.tab === tabId);
+        });
+        closeDrawer();
+      }
+
+      drawerItems.forEach(btn => {
+        btn.addEventListener('click', () => {
+          switchTab(btn.dataset.tab);
+        });
+      });
+
+      // "View all" on dashboard → Meal Tracker
+      document.getElementById('viewAllMeals')?.addEventListener('click', () => {
+        switchTab('meal-tracker');
+      });
+
+      // ── mimic data from your original state ──
+      function updateDashboard() {
+        // read from localStorage if available (same keys as original)
+        let petName = 'Mya';
+        try { const n = localStorage.getItem('mya_pet_name'); if (n) petName = n; } catch(e) {}
+        document.getElementById('dogNameDisplay').textContent = petName;
+
+        // get today's fed count
+        let fedCount = 0;
+        try {
+          const log = JSON.parse(localStorage.getItem('mya_fed') || '{}');
+          const today = new Date();
+          const ds = today.getFullYear()+'-'+
+            String(today.getMonth()+1).padStart(2,'0')+'-'+
+            String(today.getDate()).padStart(2,'0');
+          if (log[ds+'_am']) fedCount++;
+          if (log[ds+'_pm']) fedCount++;
+        } catch(e) {}
+        document.getElementById('dashMeals').textContent = fedCount;
+
+        // show one example meal (dinner) if nothing else
+        const mealsContainer = document.getElementById('todayMealsList');
+        if (fedCount === 0) {
+          mealsContainer.innerHTML = `
+            <div class="meal-item">
+              <div class="left"><div class="meal-label">Breakfast</div><div class="meal-desc">8 oz turkey</div><div class="meal-kcal">0 kcal</div></div>
+              <div class="right"><span class="badge-pending">pending</span></div>
+            </div>
+            <div class="meal-item">
+              <div class="left"><div class="meal-label">Dinner</div><div class="meal-desc">8 oz chicken</div><div class="meal-kcal">0 kcal</div></div>
+              <div class="right"><span class="badge-pending">pending</span></div>
+            </div>
+          `;
+        } else {
+          // if some fed, show one fed + one pending
+          mealsContainer.innerHTML = `
+            <div class="meal-item">
+              <div class="left"><div class="meal-label">Breakfast</div><div class="meal-desc">8 oz turkey</div><div class="meal-kcal">0 kcal</div></div>
+              <div class="right"><span class="badge-fed">✓ Fed</span></div>
+            </div>
+            <div class="meal-item">
+              <div class="left"><div class="meal-label">Dinner</div><div class="meal-desc">8 oz chicken</div><div class="meal-kcal">0 kcal</div></div>
+              <div class="right"><span class="badge-pending">pending</span></div>
+            </div>
+          `;
+        }
+
+        // macro placeholders (could read from your nutrition state)
+        // we keep them as 0/132 etc. for the look
+      }
+
+      updateDashboard();
+
+      // ── avatar photo (mirror original) ──
+      try {
+        const photo = localStorage.getItem('mya_pet_photo');
+        if (photo) {
+          const img = document.getElementById('avatarImg');
+          const placeholder = document.getElementById('avatarPlaceholder');
+          img.src = photo;
+          img.style.display = 'block';
+          placeholder.style.display = 'none';
+        }
+      } catch(e) {}
+
+      // ── re-run when switching to dashboard ──
+      const origSwitch = switchTab;
+      switchTab = function(tabId) {
+        origSwitch(tabId);
+        if (tabId === 'dashboard') updateDashboard();
+      };
+      // re-bind clicks to use new switchTab
+      drawerItems.forEach(btn => {
+        btn.removeEventListener('click', () => {});
+        btn.addEventListener('click', () => {
+          switchTab(btn.dataset.tab);
+        });
+      });
+      document.getElementById('viewAllMeals')?.addEventListener('click', () => {
+        switchTab('meal-tracker');
+      });
+
+      // expose to global for any inline onclick
+      window.switchTab = switchTab;
+
+    })();
+  </script>
+</body>
+</html>
